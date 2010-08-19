@@ -1,36 +1,17 @@
-function calPixel(complex) {
-    var count;
-    var real = 0.0;
-    var imag = 0.0;
-    for (count = 0; count < 255; count++) {
-        var newReal = complex['real'] + ((real * real) - (imag * imag));
-        var newImag = complex['imag'] + (2 * real * imag);
-        var lengthSq = (newReal * newReal) + (newImag * newImag);
-        if (lengthSq >= 4.0) {
-            return count;
-        }
-        real = newReal;
-        imag = newImag;
-    }
-    return count;
-}
-
-function buildPic(dispWidth, dispHeight, realMin, imagMin, scaleReal, scaleImag, pic) {
-    for(var i = 0; i < dispWidth; i++) {
-        for (var j = 0; j < dispHeight; j++) {
-            var real = realMin + (i * scaleReal);
-            var imag = imagMin + (j * scaleImag);
-            var complex = { 'real':real, 'imag':imag};
-            pic[pic.length] = calPixel(complex);
-        }
-    }
-    return pic;
-}
-function draw(dispWidth, dispHeight, colorMap, pic) {
+function draw(dispWidth, dispHeight, colorMap, picMap) {
     var canvas = document.getElementById("c");
     var context = canvas.getContext("2d");
     // Create an ImageData object.
     var imgd = context.createImageData(dispWidth, dispHeight);
+
+    //flatten map into an array
+    var pic = new Array();
+    $.each(picMap, function(i,c) {
+        $.each(c, function (j,p) {
+            pic[pic.length] = p;
+        });
+    });
+
     var i = 0;
     for (var j = 0; j < imgd.data.length; j += 4) {
         var rgb = colorMap[pic[i++]];
@@ -44,12 +25,28 @@ function draw(dispWidth, dispHeight, colorMap, pic) {
     context.putImageData(imgd, 0, 0);
 }
 
-function mandelbrot(colorMap, dispWidth, dispHeight, realMin, realMax, imagMin, imagMax) {
+function mandelbrotPar(colorMap, dispWidth, dispHeight, realMin, realMax, imagMin, imagMax) {
     var scaleReal = (realMax - realMin) / dispWidth;
     var scaleImag = (imagMax - imagMin) / dispHeight;
-    var pic = new Array();
-    buildPic(dispWidth, dispHeight, realMin, imagMin, scaleReal, scaleImag, pic);
-    draw(dispWidth, dispHeight, colorMap, pic);
+
+    var picMap = new Object();
+    for (var i = 0; i < dispWidth; i++) {
+        var slave = new Worker('slave.js');
+        var msg = {'x':i,'dispHeight':dispHeight,'realMin':realMin,'realMax':realMax,
+            'imagMin':imagMin,'imagMax':imagMax,'scaleReal':scaleReal,'scaleImag':scaleImag};
+        slave.postMessage(msg);
+        slave.onmessage = function(e) {
+            var data = e.data;
+            picMap[data['x']] = data.column;
+            var length = 0;
+            $.each(picMap, function(column, i) {
+                length++
+            });
+            if (length == dispWidth) {
+                draw(dispWidth, dispHeight, colorMap, picMap);
+            }
+        };
+    }
 }
 
 $(document).ready(function() {
@@ -72,7 +69,7 @@ $(document).ready(function() {
                             colorMap[colorMap.length] = RGB;
                         }
                     });
-            mandelbrot(colorMap, 400, 400, -0.7801785714285, -0.7676785714285, -0.1279296875000, -0.1181640625000);
+            mandelbrotPar(colorMap, 600, 600, -0.7801785714285, -0.7676785714285, -0.1279296875000, -0.1181640625000);
         },
         error: function(e) {
             alert(e);
