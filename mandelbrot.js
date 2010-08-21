@@ -5,12 +5,17 @@ function draw(dispWidth, dispHeight, colorMap, picMap) {
     var imgd = context.createImageData(dispWidth, dispHeight);
 
     //flatten map into an array
+    var length = 0;
+    $.each(picMap, function(column, i) {
+        length++
+    });
     var pic = new Array();
-    $.each(picMap, function(i,c) {
-        $.each(c, function (j,p) {
+    for(var i=0;i<length;i++) {
+        var c = picMap[i];
+        $.each(c, function (j, p) {
             pic[pic.length] = p;
         });
-    });
+    }
 
     var i = 0;
     for (var j = 0; j < imgd.data.length; j += 4) {
@@ -44,35 +49,46 @@ function mandelbrotPar(colorMap, dispWidth, dispHeight, realMin, realMax, imagMi
             });
             if (length == dispWidth) {
                 draw(dispWidth, dispHeight, colorMap, picMap);
+                $('#btnM').attr('disabled', false);
             }
         };
     }
 }
 
 $(document).ready(function() {
-    $.ajax({
-        url: 'neon.txt',
-        type: 'GET',
-        success: function(data) {
-            var lines = data.split("\n");
-            var colorMap = new Array();
-            $.each(lines,
-                    function(index, line) {
-                        line = line.split(" ");
-                        var RGB = new Array();
-                        for (var j = 0; j < line.length; j++) {
-                            if (line[j] != "") {
-                                RGB[RGB.length] = parseInt(line[j]);
+    $('#btnM').click(function(e) {
+        e.preventDefault();
+        $('#btnM').attr('disabled', true);
+        $.ajax({
+            url: 'neon.txt',
+            type: 'GET',
+            success: function(data) {
+                var lines = data.split("\n");
+                var colorMap = new Array();
+                $.each(lines,
+                        function(index, line) {
+                            line = line.split(" ");
+                            var RGB = new Array();
+                            for (var j = 0; j < line.length; j++) {
+                                if (line[j] != "") {
+                                    RGB[RGB.length] = parseInt(line[j]);
+                                }
                             }
-                        }
-                        if (RGB.length == 3) {
-                            colorMap[colorMap.length] = RGB;
-                        }
-                    });
-            mandelbrotPar(colorMap, 600, 600, -0.7801785714285, -0.7676785714285, -0.1279296875000, -0.1181640625000);
-        },
-        error: function(e) {
-            alert(e);
-        }
+                            if (RGB.length == 3) {
+                                colorMap[colorMap.length] = RGB;
+                            }
+                        });
+                var wh = parseInt($('#wh').val());
+                document.getElementById('c').width=wh;
+                document.getElementById('c').height=wh;
+                mandelbrotPar(colorMap, wh, wh, parseFloat($('#rMin').val()),
+                        parseFloat($('#rMax').val()), parseFloat($('#iMin').val()),
+                        parseFloat($('#iMax').val()));
+            },
+            error: function(e) {
+                alert(e);
+            }
+        });
     });
+
 });
