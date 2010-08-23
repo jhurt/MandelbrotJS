@@ -10,7 +10,7 @@ function draw(dispWidth, dispHeight, colorMap, picMap) {
         length++
     });
     var pic = new Array();
-    for(var i=0;i<length;i++) {
+    for (var i = 0; i < length; i++) {
         var c = picMap[i];
         $.each(c, function (j, p) {
             pic[pic.length] = p;
@@ -30,14 +30,14 @@ function draw(dispWidth, dispHeight, colorMap, picMap) {
     context.putImageData(imgd, 0, 0);
 }
 
-function mandelbrotPar(colorMap, dispWidth, dispHeight, realMin, realMax, imagMin, imagMax) {
+function mandelbrotPar(numWorkers, colorMap, dispWidth, dispHeight, realMin, realMax, imagMin, imagMax) {
     var scaleReal = (realMax - realMin) / dispWidth;
     var scaleImag = (imagMax - imagMin) / dispHeight;
-
+    var k=dispWidth/numWorkers;
     var picMap = new Object();
-    for (var i = 0; i < dispWidth; i++) {
+    for (var i = 0; i < dispWidth; i+=k) {
         var slave = new Worker('slave.js');
-        var msg = {'x':i,'dispHeight':dispHeight,'realMin':realMin,'realMax':realMax,
+        var msg = {'x':i,'num':k,'dispHeight':dispHeight,'realMin':realMin,'realMax':realMax,
             'imagMin':imagMin,'imagMax':imagMax,'scaleReal':scaleReal,'scaleImag':scaleImag};
         slave.postMessage(msg);
         slave.onmessage = function(e) {
@@ -79,16 +79,21 @@ $(document).ready(function() {
                             }
                         });
                 var wh = parseInt($('#wh').val());
-                document.getElementById('c').width=wh;
-                document.getElementById('c').height=wh;
-                mandelbrotPar(colorMap, wh, wh, parseFloat($('#rMin').val()),
-                        parseFloat($('#rMax').val()), parseFloat($('#iMin').val()),
-                        parseFloat($('#iMax').val()));
+                var ww = parseInt($('#ww').val());
+                if (ww > wh || wh % ww != 0) {
+                    alert('# of workers must evenly divide width/height');    
+                }
+                else {
+                    document.getElementById('c').width = wh;
+                    document.getElementById('c').height = wh;
+                    mandelbrotPar(ww,colorMap,wh, wh, parseFloat($('#rMin').val()),
+                            parseFloat($('#rMax').val()),parseFloat($('#iMin').val()),
+                            parseFloat($('#iMax').val()));
+                }
             },
             error: function(e) {
                 alert(e);
             }
         });
     });
-
 });
