@@ -62,6 +62,7 @@ $(document).ready(function() {
         $.ajax({
             url: 'neon.txt',
             type: 'GET',
+            contentType: 'text/plain; charset=utf-8',
             success: function(data) {
                 var lines = data.split("\n");
                 var colorMap = new Array();
@@ -81,7 +82,8 @@ $(document).ready(function() {
                 var wh = parseInt($('#wh').val());
                 var ww = parseInt($('#ww').val());
                 if (ww > wh || wh % ww != 0) {
-                    alert('# of workers must evenly divide width/height');    
+                    alert('# of workers must evenly divide width/height');
+                    $('#btnM').attr('disabled', false);
                 }
                 else {
                     document.getElementById('c').width = wh;
@@ -90,9 +92,6 @@ $(document).ready(function() {
                             parseFloat($('#rMax').val()),parseFloat($('#iMin').val()),
                             parseFloat($('#iMax').val()));
                 }
-            },
-            error: function(e) {
-                alert(e);
             }
         });
     });
